@@ -20,6 +20,7 @@
     "test": "tests"
   },
   "devDependencies": {
+    "async": "^1.5.2",
     "tape": "^2.14.0"
   },
   "repository": {

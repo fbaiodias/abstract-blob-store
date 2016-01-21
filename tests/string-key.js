@@ -1,5 +1,6 @@
 var from = require('from2-array')
 var concat = require('concat-stream')
+var async = require('async')
 
 module.exports.blobWriteStream = function(test, common) {
   test('piping a blob into a blob write stream with string key', function(t) {
@@ -44,6 +45,30 @@ module.exports.blobReadStream = function(test, common) {
       })
 
       from([new Buffer('foo'), new Buffer('bar')]).pipe(ws)
+    })
+  })
+}
+
+module.exports.blobLotsOfWriteStreams = function(test, common) {
+  test('writing a lot of blobs and reading the last one', function(t) {
+    common.setup(test, function(err, store) {
+      t.notOk(err, 'no setup err')
+
+      var total = 1000
+      async.timesSeries(total, function (n, cb) {
+        store.createWriteStream({ key: 'foo'+n }).end('bar'+n, cb)
+      }, function (err) {
+        t.error(err, 'no teardown err')
+
+        store.createReadStream({ key: 'foo'+(total-1) }).on('data', function (buf) {
+          t.equal(buf.toString(), 'bar'+(total-1), 'read last string')
+
+          common.teardown(test, store, null, function(err) {
+            t.error(err)
+            t.end()
+          })
+        })
+      })
     })
   })
 }
@@ -100,6 +125,7 @@ module.exports.blobExists = function(test, common) {
 module.exports.all = function (test, common) {
   module.exports.blobWriteStream(test, common)
   module.exports.blobReadStream(test, common)
+  module.exports.blobLotsOfWriteStreams(test, common)
   module.exports.blobReadError(test, common)
   module.exports.blobExists(test, common)
 }
